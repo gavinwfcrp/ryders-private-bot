@@ -996,27 +996,29 @@ ${executor}
 
 
 
-    // =========================
-    // SERVER MUTE
-    // =========================
+// =========================
+// SERVER MUTE
+// =========================
 
-    if(
-        oldState.serverMute !== newState.serverMute
-    ){
+if(
+    oldState.channel &&
+    newState.channel &&
+    oldState.serverMute !== newState.serverMute &&
+    typeof newState.serverMute === "boolean"
+){
 
-        executor =
-        await findExecutor([
-            AuditLogEvent.MemberUpdate
-        ]);
+    executor =
+    await findExecutor([
+        AuditLogEvent.MemberUpdate
+    ]);
 
 
-
-        sendLog(
+    sendLog(
+        member.guild,
+        VOICE_LOGS,
+        buildEmbed(
             member.guild,
-            VOICE_LOGS,
-            buildEmbed(
-                member.guild,
-                "🎙️ Server Mute Updated",
+            "🎙️ Server Mute Updated",
 `
 **User**
 <@${member.id}>
@@ -1027,13 +1029,13 @@ ${newState.serverMute ? "Muted" : "Unmuted"}
 **Changed By**
 ${executor}
 `
-            )
-        );
+        )
+    );
 
 
-        return;
+    return;
 
-    }
+}
 
 
 
