@@ -15,7 +15,7 @@ const VOICE_LOGS = "1534624514602963306";
 
 /*
 =================================================
-            PREMIUM LOG EMBED BUILDER
+          PREMIUM WIDE EMBED SYSTEM
 =================================================
 */
 
@@ -24,9 +24,10 @@ function buildEmbed(
     guild,
     {
         title,
-        subtitle,
+        description,
         user,
-        fields = []
+        fields = [],
+        color = "#18191C"
     }
 ){
 
@@ -34,7 +35,10 @@ function buildEmbed(
     const embed =
     new EmbedBuilder()
 
-    .setColor("#202225")
+
+    .setColor(color)
+
+
 
     .setAuthor({
 
@@ -49,47 +53,16 @@ function buildEmbed(
     })
 
 
+
     .setDescription(
-`
-${subtitle || "Automated server activity log"}
 
+`
+${description || "Server activity recorded."}
+
+‎
 `
 
     )
-
-
-    .addFields(
-
-        fields.map(field => ({
-
-            name:
-            field.name,
-
-            value:
-            field.value || "N/A",
-
-            inline:
-            field.inline ?? true
-
-        }))
-
-    )
-
-
-    .setFooter({
-
-        text:
-        `${guild.name} • Logs`,
-
-        iconURL:
-        guild.iconURL({
-            dynamic:true
-        })
-
-    })
-
-
-    .setTimestamp();
 
 
 
@@ -101,13 +74,57 @@ ${subtitle || "Automated server activity log"}
 
                 dynamic:true,
 
-                size:256
+                size:512
 
             })
 
         );
 
     }
+
+
+
+    /*
+        Force horizontal layout.
+        Discord uses available width better
+        with inline fields.
+    */
+
+
+    embed.addFields(
+
+        fields.map(field => ({
+
+            name:
+            field.name,
+
+            value:
+            field.value || "—",
+
+            inline:
+            field.inline !== false
+
+        }))
+
+    );
+
+
+
+    embed.setFooter({
+
+        text:
+        `${guild.name}  •  Management Logs`,
+
+        iconURL:
+        guild.iconURL({
+            dynamic:true
+        })
+
+    });
+
+
+
+    embed.setTimestamp();
 
 
 
@@ -121,7 +138,7 @@ ${subtitle || "Automated server activity log"}
 
 /*
 =================================================
-              AUDIT LOG HELPER
+              AUDIT LOGGER
 =================================================
 */
 
@@ -163,6 +180,7 @@ async function getExecutor(
 
         if(entry){
 
+
             return {
 
                 user:
@@ -179,13 +197,16 @@ async function getExecutor(
 
             };
 
+
         }
 
 
-    }catch(error){
+    }
+
+    catch(error){
 
         console.log(
-            "Audit Error:",
+            "Audit Log Error:",
             error
         );
 
@@ -211,7 +232,7 @@ async function getExecutor(
 
 /*
 =================================================
-              MESSAGE LOGS
+              MESSAGE DELETE
 =================================================
 */
 
@@ -243,14 +264,17 @@ async function messageDelete(message){
                 title:
                 "🗑 Message Deleted",
 
-                subtitle:
-                "A message was deleted from the server.",
+
+                description:
+                "A message was removed from the server.",
+
 
                 user:
                 message.author,
 
 
                 fields:[
+
 
                     {
 
@@ -280,13 +304,14 @@ async function messageDelete(message){
                         "💬 Content",
 
                         value:
-                        message.content?.slice(0,1000)
+                        message.content?.slice(0,900)
                         ||
                         "No content",
 
                         inline:false
 
                     }
+
 
                 ]
 
@@ -316,7 +341,10 @@ async function messageUpdate(
     return;
 
 
-    if(oldMessage.content === newMessage.content)
+    if(
+        oldMessage.content ===
+        newMessage.content
+    )
     return;
 
 
@@ -336,8 +364,10 @@ async function messageUpdate(
                 title:
                 "✏ Message Edited",
 
-                subtitle:
+
+                description:
                 "A message was modified.",
+
 
                 user:
                 oldMessage.author,
@@ -374,7 +404,7 @@ async function messageUpdate(
                         "Before",
 
                         value:
-                        oldMessage.content?.slice(0,500)
+                        oldMessage.content?.slice(0,400)
                         ||
                         "Empty"
 
@@ -387,7 +417,7 @@ async function messageUpdate(
                         "After",
 
                         value:
-                        newMessage.content?.slice(0,500)
+                        newMessage.content?.slice(0,400)
                         ||
                         "Empty"
 
@@ -403,21 +433,14 @@ async function messageUpdate(
 
 }
 
-
-
-
-
 /*
 =================================================
-              MEMBER LOGS
+              MEMBER UPDATE / TIMEOUT
 =================================================
 */
 
 
-async function guildMemberUpdate(
-    oldMember,
-    newMember
-){
+async function guildMemberUpdate(oldMember,newMember){
 
 
     if(
@@ -457,8 +480,10 @@ async function guildMemberUpdate(
                     title:
                     "⏳ Member Timeout",
 
-                    subtitle:
-                    "A moderation timeout was applied.",
+
+                    description:
+                    "A moderation action was applied.",
+
 
                     user:
                     newMember.user,
@@ -481,7 +506,7 @@ async function guildMemberUpdate(
                         {
 
                             name:
-                            "⏱ Ends",
+                            "⏱ Duration",
 
                             value:
                             `<t:${Math.floor(
@@ -500,6 +525,7 @@ async function guildMemberUpdate(
                             audit.user
 
                         }
+
 
                     ]
 
@@ -527,8 +553,39 @@ async function guildMemberUpdate(
 
         changes.push(
 
-            `Nickname: ${oldMember.nickname || oldMember.user.username} → ${newMember.nickname || newMember.user.username}`
+            `Nickname changed`
 
+        );
+
+    }
+
+
+
+    const added =
+    newMember.roles.cache.filter(
+        r => !oldMember.roles.cache.has(r.id)
+    );
+
+
+    const removed =
+    oldMember.roles.cache.filter(
+        r => !newMember.roles.cache.has(r.id)
+    );
+
+
+    if(added.size){
+
+        changes.push(
+            `Roles Added: ${added.map(r=>r.name).join(", ")}`
+        );
+
+    }
+
+
+    if(removed.size){
+
+        changes.push(
+            `Roles Removed: ${removed.map(r=>r.name).join(", ")}`
         );
 
     }
@@ -555,8 +612,10 @@ async function guildMemberUpdate(
                 title:
                 "👤 Member Updated",
 
-                subtitle:
-                "Member settings were changed.",
+
+                description:
+                "Member information changed.",
+
 
                 user:
                 newMember.user,
@@ -564,10 +623,11 @@ async function guildMemberUpdate(
 
                 fields:[
 
+
                     {
 
                         name:
-                        "Member",
+                        "👤 Member",
 
                         value:
                         `<@${newMember.id}>`
@@ -587,6 +647,7 @@ async function guildMemberUpdate(
 
                     }
 
+
                 ]
 
             }
@@ -596,6 +657,10 @@ async function guildMemberUpdate(
     );
 
 }
+
+
+
+
 
 /*
 =================================================
@@ -630,14 +695,15 @@ async function roleCreate(role){
                 title:
                 "🎭 Role Created",
 
-                subtitle:
-                "A new role was added.",
+
+                description:
+                "A new role was created.",
 
 
                 fields:[
 
                     {
-                        name:"Role",
+                        name:"🎭 Role",
                         value:role.name
                     },
 
@@ -655,6 +721,7 @@ async function roleCreate(role){
     );
 
 }
+
 
 
 
@@ -685,14 +752,15 @@ async function roleDelete(role){
                 title:
                 "🗑 Role Deleted",
 
-                subtitle:
+
+                description:
                 "A role was removed.",
 
 
                 fields:[
 
                     {
-                        name:"Role",
+                        name:"🎭 Role",
                         value:role.name
                     },
 
@@ -714,11 +782,13 @@ async function roleDelete(role){
 
 
 
+
 async function roleUpdate(oldRole,newRole){
 
 
     if(oldRole.name === newRole.name)
     return;
+
 
 
     const audit =
@@ -727,6 +797,7 @@ async function roleUpdate(oldRole,newRole){
         AuditLogEvent.RoleUpdate,
         newRole.id
     );
+
 
 
     sendLog(
@@ -744,26 +815,31 @@ async function roleUpdate(oldRole,newRole){
                 title:
                 "✏ Role Updated",
 
-                subtitle:
+
+                description:
                 "A role was modified.",
 
 
                 fields:[
+
 
                     {
                         name:"Before",
                         value:oldRole.name
                     },
 
+
                     {
                         name:"After",
                         value:newRole.name
                     },
 
+
                     {
                         name:"Updated By",
                         value:audit.user
                     }
+
 
                 ]
 
@@ -781,7 +857,7 @@ async function roleUpdate(oldRole,newRole){
 
 /*
 =================================================
-              CHANNEL LOGS
+                CHANNEL LOGS
 =================================================
 */
 
@@ -793,12 +869,14 @@ async function channelCreate(channel){
     return;
 
 
+
     const audit =
     await getExecutor(
         channel.guild,
         AuditLogEvent.ChannelCreate,
         channel.id
     );
+
 
 
     sendLog(
@@ -816,21 +894,25 @@ async function channelCreate(channel){
                 title:
                 "📁 Channel Created",
 
-                subtitle:
+
+                description:
                 "A new channel was created.",
 
 
                 fields:[
 
+
                     {
-                        name:"Channel",
+                        name:"📍 Channel",
                         value:`${channel}`
                     },
+
 
                     {
                         name:"Created By",
                         value:audit.user
                     }
+
 
                 ]
 
@@ -853,12 +935,14 @@ async function channelDelete(channel){
     return;
 
 
+
     const audit =
     await getExecutor(
         channel.guild,
         AuditLogEvent.ChannelDelete,
         channel.id
     );
+
 
 
     sendLog(
@@ -876,21 +960,25 @@ async function channelDelete(channel){
                 title:
                 "🗑 Channel Deleted",
 
-                subtitle:
+
+                description:
                 "A channel was removed.",
 
 
                 fields:[
 
+
                     {
-                        name:"Channel",
+                        name:"📍 Channel",
                         value:channel.name
                     },
+
 
                     {
                         name:"Deleted By",
                         value:audit.user
                     }
+
 
                 ]
 
@@ -913,12 +1001,14 @@ async function channelUpdate(oldChannel,newChannel){
     return;
 
 
+
     const audit =
     await getExecutor(
         newChannel.guild,
         AuditLogEvent.ChannelUpdate,
         newChannel.id
     );
+
 
 
     sendLog(
@@ -936,94 +1026,31 @@ async function channelUpdate(oldChannel,newChannel){
                 title:
                 "✏ Channel Updated",
 
-                subtitle:
+
+                description:
                 "A channel was modified.",
 
 
                 fields:[
+
 
                     {
                         name:"Before",
                         value:oldChannel.name
                     },
 
+
                     {
                         name:"After",
                         value:newChannel.name
                     },
+
 
                     {
                         name:"Updated By",
                         value:audit.user
                     }
 
-                ]
-
-            }
-
-        )
-
-    );
-
-}
-
-
-
-
-
-/*
-=================================================
-             BAN / KICK LOGS
-=================================================
-*/
-
-
-async function guildBanAdd(ban){
-
-
-    const audit =
-    await getExecutor(
-        ban.guild,
-        AuditLogEvent.MemberBanAdd,
-        ban.user.id
-    );
-
-
-    sendLog(
-
-        ban.guild,
-
-        BAN_LOGS,
-
-        buildEmbed(
-
-            ban.guild,
-
-            {
-
-                title:
-                "🔨 Member Banned",
-
-                subtitle:
-                "A member was banned.",
-
-
-                fields:[
-
-                    {
-                        name:"Member",
-                        value:`<@${ban.user.id}>`
-                    },
-
-                    {
-                        name:"Reason",
-                        value:audit.reason
-                    },
-
-                    {
-                        name:"Moderator",
-                        value:audit.user
-                    }
 
                 ]
 
@@ -1034,694 +1061,3 @@ async function guildBanAdd(ban){
     );
 
 }
-
-
-
-
-
-async function guildBanRemove(ban){
-
-
-    const audit =
-    await getExecutor(
-        ban.guild,
-        AuditLogEvent.MemberBanRemove,
-        ban.user.id
-    );
-
-
-    sendLog(
-
-        ban.guild,
-
-        BAN_LOGS,
-
-        buildEmbed(
-
-            ban.guild,
-
-            {
-
-                title:
-                "🔓 Member Unbanned",
-
-                subtitle:
-                "A member was unbanned.",
-
-
-                fields:[
-
-                    {
-                        name:"Member",
-                        value:`<@${ban.user.id}>`
-                    },
-
-                    {
-                        name:"Moderator",
-                        value:audit.user
-                    }
-
-                ]
-
-            }
-
-        )
-
-    );
-
-}
-
-
-
-
-
-async function guildMemberRemove(member){
-
-
-    if(!member.guild)
-    return;
-
-
-    const logs =
-    await member.guild.fetchAuditLogs({
-
-        limit:10,
-
-        type:
-        AuditLogEvent.MemberKick
-
-    }).catch(()=>null);
-
-
-
-    const entry =
-    logs?.entries.find(
-
-        e =>
-        e.target?.id === member.id &&
-        Date.now() -
-        e.createdTimestamp <
-        15000
-
-    );
-
-
-    if(!entry)
-    return;
-
-
-
-    sendLog(
-
-        member.guild,
-
-        BAN_LOGS,
-
-        buildEmbed(
-
-            member.guild,
-
-            {
-
-                title:
-                "👢 Member Kicked",
-
-                subtitle:
-                "A member was removed by staff.",
-
-
-                fields:[
-
-                    {
-                        name:"Member",
-                        value:`<@${member.id}>`
-                    },
-
-                    {
-                        name:"Moderator",
-                        value:`<@${entry.executor.id}>`
-                    },
-
-                    {
-                        name:"Reason",
-                        value:
-                        entry.reason ||
-                        "No reason provided"
-                    }
-
-                ]
-
-            }
-
-        )
-
-    );
-
-}
-
-
-
-
-
-/*
-=================================================
-                INVITES
-=================================================
-*/
-
-
-async function inviteCreate(invite){
-
-
-    sendLog(
-
-        invite.guild,
-
-        INVITE_LOGS,
-
-        buildEmbed(
-
-            invite.guild,
-
-            {
-
-                title:
-                "🔗 Invite Created",
-
-                subtitle:
-                "A new invite was generated.",
-
-
-                fields:[
-
-                    {
-                        name:"Code",
-                        value:`\`${invite.code}\``
-                    },
-
-                    {
-                        name:"Channel",
-                        value:`${invite.channel}`
-                    },
-
-                    {
-                        name:"Creator",
-                        value:`${invite.inviter || "Unknown"}`
-                    }
-
-                ]
-
-            }
-
-        )
-
-    );
-
-}
-
-
-
-
-
-async function inviteDelete(invite){
-
-
-    sendLog(
-
-        invite.guild,
-
-        INVITE_LOGS,
-
-        buildEmbed(
-
-            invite.guild,
-
-            {
-
-                title:
-                "🗑 Invite Deleted",
-
-                subtitle:
-                "An invite was removed.",
-
-
-                fields:[
-
-                    {
-                        name:"Code",
-                        value:`\`${invite.code}\``
-                    }
-
-                ]
-
-            }
-
-        )
-
-    );
-
-}
-
-
-
-
-
-/*
-=================================================
-                 VOICE LOGS
-=================================================
-*/
-
-
-async function voiceStateUpdate(oldState,newState){
-
-
-    const member =
-    newState.member ||
-    oldState.member;
-
-
-    if(!member)
-    return;
-
-
-
-    const guild =
-    member.guild;
-
-
-
-    async function findVoiceExecutor(){
-
-
-        try{
-
-
-            const logs =
-            await guild.fetchAuditLogs({
-
-                limit:10,
-
-                type:AuditLogEvent.MemberDisconnect
-
-            });
-
-
-
-            const entry =
-            logs.entries.find(
-
-                e =>
-                e.target?.id === member.id &&
-                Date.now() -
-                e.createdTimestamp <
-                10000
-
-            );
-
-
-            if(entry?.executor)
-
-                return `<@${entry.executor.id}>`;
-
-
-        }
-        catch(error){}
-
-
-
-        return null;
-
-    }
-
-
-
-
-
-    // LEFT OR DISCONNECTED
-
-    if(
-        oldState.channel &&
-        !newState.channel
-    ){
-
-
-        const executor =
-        await findVoiceExecutor();
-
-
-
-        sendLog(
-
-            guild,
-
-            VOICE_LOGS,
-
-            buildEmbed(
-
-                guild,
-
-                {
-
-                    title:
-                    executor
-                    ?
-                    "🔌 Voice Disconnected"
-                    :
-                    "🚪 Left Voice Channel",
-
-
-                    subtitle:
-                    executor
-                    ?
-                    "A member was removed from voice."
-                    :
-                    "A member left voice.",
-
-
-                    user:
-                    member.user,
-
-
-                    fields:[
-
-                        {
-                            name:"Member",
-                            value:`<@${member.id}>`
-                        },
-
-                        {
-                            name:"Channel",
-                            value:oldState.channel.name
-                        },
-
-                        {
-                            name:
-                            executor
-                            ?
-                            "Disconnected By"
-                            :
-                            "Status",
-
-                            value:
-                            executor ||
-                            "User Left"
-
-                        }
-
-                    ]
-
-                }
-
-            )
-
-        );
-
-
-        return;
-
-    }
-
-
-
-
-
-    // JOIN
-
-    if(
-        !oldState.channel &&
-        newState.channel
-    ){
-
-
-        sendLog(
-
-            guild,
-
-            VOICE_LOGS,
-
-            buildEmbed(
-
-                guild,
-
-                {
-
-                    title:
-                    "🔊 Voice Joined",
-
-                    subtitle:
-                    "A member joined voice.",
-
-
-                    user:
-                    member.user,
-
-
-                    fields:[
-
-                        {
-                            name:"Member",
-                            value:`<@${member.id}>`
-                        },
-
-                        {
-                            name:"Channel",
-                            value:newState.channel.name
-                        }
-
-                    ]
-
-                }
-
-            )
-
-        );
-
-
-        return;
-
-    }
-
-
-
-
-
-    // MOVE
-
-    if(
-        oldState.channel &&
-        newState.channel &&
-        oldState.channel.id !== newState.channel.id
-    ){
-
-
-        sendLog(
-
-            guild,
-
-            VOICE_LOGS,
-
-            buildEmbed(
-
-                guild,
-
-                {
-
-                    title:
-                    "🔄 Voice Moved",
-
-                    subtitle:
-                    "A member changed voice channels.",
-
-
-                    user:
-                    member.user,
-
-
-                    fields:[
-
-                        {
-                            name:"Member",
-                            value:`<@${member.id}>`
-                        },
-
-                        {
-                            name:"From",
-                            value:oldState.channel.name
-                        },
-
-                        {
-                            name:"To",
-                            value:newState.channel.name
-                        }
-
-                    ]
-
-                }
-
-            )
-
-        );
-
-
-        return;
-
-    }
-
-
-
-
-
-    // SERVER MUTE FIX
-
-    if(
-
-        oldState.channel &&
-        newState.channel &&
-        oldState.serverMute !== newState.serverMute &&
-        typeof newState.serverMute === "boolean"
-
-    ){
-
-
-        sendLog(
-
-            guild,
-
-            VOICE_LOGS,
-
-            buildEmbed(
-
-                guild,
-
-                {
-
-                    title:
-                    newState.serverMute
-                    ?
-                    "🔇 Server Muted"
-                    :
-                    "🔊 Server Unmuted",
-
-
-                    subtitle:
-                    "Voice permissions changed.",
-
-
-                    user:
-                    member.user,
-
-
-                    fields:[
-
-                        {
-                            name:"Member",
-                            value:`<@${member.id}>`
-                        },
-
-                        {
-                            name:"Channel",
-                            value:newState.channel.name
-                        }
-
-                    ]
-
-                }
-
-            )
-
-        );
-
-    }
-
-}
-
-
-
-
-
-/*
-=================================================
-                EXPORTS
-=================================================
-*/
-
-
-module.exports = [
-
-    {
-        name:"messageDelete",
-        execute:messageDelete
-    },
-
-    {
-        name:"messageUpdate",
-        execute:messageUpdate
-    },
-
-    {
-        name:"guildMemberUpdate",
-        execute:guildMemberUpdate
-    },
-
-    {
-        name:"guildMemberRemove",
-        execute:guildMemberRemove
-    },
-
-    {
-        name:"roleCreate",
-        execute:roleCreate
-    },
-
-    {
-        name:"roleDelete",
-        execute:roleDelete
-    },
-
-    {
-        name:"roleUpdate",
-        execute:roleUpdate
-    },
-
-    {
-        name:"channelCreate",
-        execute:channelCreate
-    },
-
-    {
-        name:"channelDelete",
-        execute:channelDelete
-    },
-
-    {
-        name:"channelUpdate",
-        execute:channelUpdate
-    },
-
-    {
-        name:"guildBanAdd",
-        execute:guildBanAdd
-    },
-
-    {
-        name:"guildBanRemove",
-        execute:guildBanRemove
-    },
-
-    {
-        name:"inviteCreate",
-        execute:inviteCreate
-    },
-
-    {
-        name:"inviteDelete",
-        execute:inviteDelete
-    },
-
-    {
-        name:"voiceStateUpdate",
-        execute:voiceStateUpdate
-    }
-
-];
