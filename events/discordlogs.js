@@ -1064,26 +1064,28 @@ ${executor}
 
 
     // =========================
-    // SERVER DEAFEN
-    // =========================
+// SERVER DEAFEN
+// =========================
 
-    if(
-        oldState.serverDeaf !== newState.serverDeaf
-    ){
+if(
+    oldState.channel &&
+    newState.channel &&
+    oldState.serverDeaf !== newState.serverDeaf &&
+    typeof newState.serverDeaf === "boolean"
+){
 
-        executor =
-        await findExecutor([
-            AuditLogEvent.MemberUpdate
-        ]);
+    executor =
+    await findExecutor([
+        AuditLogEvent.MemberUpdate
+    ]);
 
 
-
-        sendLog(
+    sendLog(
+        member.guild,
+        VOICE_LOGS,
+        buildEmbed(
             member.guild,
-            VOICE_LOGS,
-            buildEmbed(
-                member.guild,
-                "🔇 Server Deafen Updated",
+            "🔇 Server Deafen Updated",
 `
 **User**
 <@${member.id}>
@@ -1094,14 +1096,13 @@ ${newState.serverDeaf ? "Deafened" : "Undeafened"}
 **Changed By**
 ${executor}
 `
-            )
-        );
+        )
+    );
 
 
-        return;
+    return;
 
-    }
-
+}
 
 
 
