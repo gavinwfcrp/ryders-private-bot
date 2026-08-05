@@ -900,27 +900,29 @@ async function voiceStateUpdate(oldState,newState){
 
 
     // =========================
-    // DISCONNECTED
-    // =========================
+// DISCONNECTED / LEFT VC
+// =========================
 
-    if(
-        oldState.channel &&
-        !newState.channel
-    ){
+if(
+    oldState.channel &&
+    !newState.channel
+){
 
-        await new Promise(
-            resolve => setTimeout(resolve,1500)
-        );
-
-
-        executor =
-        await findExecutor([
-            AuditLogEvent.MemberDisconnect,
-            AuditLogEvent.MemberMove,
-            AuditLogEvent.MemberUpdate
-        ]);
+    await new Promise(
+        resolve => setTimeout(resolve,1500)
+    );
 
 
+    executor =
+    await findExecutor([
+        AuditLogEvent.MemberDisconnect,
+        AuditLogEvent.MemberMove,
+        AuditLogEvent.MemberUpdate
+    ]);
+
+
+    // User left by themselves
+    if(executor === "Unknown"){
 
         sendLog(
             member.guild,
@@ -934,18 +936,39 @@ async function voiceStateUpdate(oldState,newState){
 
 **Channel**
 ${oldState.channel.name}
-
-**Disconnected By**
-${executor}
 `
             )
         );
-
 
         return;
 
     }
 
+
+    // Someone disconnected them
+    sendLog(
+        member.guild,
+        VOICE_LOGS,
+        buildEmbed(
+            member.guild,
+            "🚪 Voice Channel Disconnected",
+`
+**User**
+<@${member.id}>
+
+**Channel**
+${oldState.channel.name}
+
+**Disconnected By**
+${executor}
+`
+        )
+    );
+
+
+    return;
+
+}
 
 
 
