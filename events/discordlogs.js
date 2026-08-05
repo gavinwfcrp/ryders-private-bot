@@ -945,14 +945,16 @@ ${oldState.channel.name}
     }
 
 
-    // Someone disconnected them
-    sendLog(
+// Someone disconnected them
+sendLog(
+    member.guild,
+    VOICE_LOGS,
+    buildEmbed(
         member.guild,
-        VOICE_LOGS,
-        buildEmbed(
-            member.guild,
-            "🚪 Voice Channel Disconnected",
+        "🚪 User Disconnected",
 `
+${executor} disconnected <@${member.id}> from **#${oldState.channel.name}**
+
 **User**
 <@${member.id}>
 
@@ -962,8 +964,8 @@ ${oldState.channel.name}
 **Disconnected By**
 ${executor}
 `
-        )
-    );
+    )
+);
 
 
     return;
@@ -1036,24 +1038,26 @@ if(
     ]);
 
 
-    sendLog(
+sendLog(
+    member.guild,
+    VOICE_LOGS,
+    buildEmbed(
         member.guild,
-        VOICE_LOGS,
-        buildEmbed(
-            member.guild,
-            "🎙️ Server Mute Updated",
+        "🎙️ Server Mute Updated",
 `
+${executor} ${newState.serverMute ? "muted" : "unmuted"} <@${member.id}> in **#${newState.channel.name}**
+
 **User**
 <@${member.id}>
 
-**Status**
-${newState.serverMute ? "Muted" : "Unmuted"}
+**Channel**
+${newState.channel.name}
 
 **Changed By**
 ${executor}
 `
-        )
-    );
+    )
+);
 
 
     return;
@@ -1080,24 +1084,26 @@ if(
     ]);
 
 
-    sendLog(
+sendLog(
+    member.guild,
+    VOICE_LOGS,
+    buildEmbed(
         member.guild,
-        VOICE_LOGS,
-        buildEmbed(
-            member.guild,
-            "🔇 Server Deafen Updated",
+        "🔇 Server Deafen Updated",
 `
+${executor} ${newState.serverDeaf ? "deafened" : "undeafened"} <@${member.id}> in **#${newState.channel.name}**
+
 **User**
 <@${member.id}>
 
-**Status**
-${newState.serverDeaf ? "Deafened" : "Undeafened"}
+**Channel**
+${newState.channel.name}
 
 **Changed By**
 ${executor}
 `
-        )
-    );
+    )
+);
 
 
     return;
